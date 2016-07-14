@@ -1,0 +1,19 @@
+echo "set encoding iso_8859_1
+
+set style histogram
+set style data histogram
+set key font ',24' spacing 3.3;
+set xtics font ',20' ;
+set ytics font ',20' ;
+set xlabel font ',24' offset 0,-0.5  'prototypes' ; 
+set ylabel font ',24' offset -2,0   'times';
+set title '';
+set terminal pdf enhanced ;
+set style fill solid border -1
+set boxwidth 2;
+set key right;
+set bmargin 4;
+set xrange [0:100];
+
+set output 'nClusters_1000.pdf';
+plot 'hist_1000' with histogram title '       nClusters: 1000' "| gnuplot

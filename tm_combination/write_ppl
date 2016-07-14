@@ -1,0 +1,9 @@
+#!/bin/bash
+
+
+
+
+lm=$1
+text=$2
+
+ngram -lm

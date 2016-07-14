@@ -1,0 +1,22 @@
+echo "set encoding iso_8859_1
+
+ 
+set style data lines
+set key font ',20'   height 2
+set xtics font ',18' 
+set ytics font ',18' 
+set xlabel font ',20'  'Training words' 
+set ylabel font ',20' 'Bigram coverage';
+
+set title ''
+set terminal postscript enhanced color solid 
+set termoption dash
+set output 'data_sel_ue_big.ps'
+set logscale x
+set key left
+
+
+set xrange [4800:]
+set bmargin 4
+plot 'draw_stats_norm' using 1:7 lt 5 lw 5 title '         Test bigram coverage' " | gnuplot
+ 
