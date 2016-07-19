@@ -10,9 +10,6 @@ fi
 
 
 for file in  $* ;do
-  ngram-count -lm /dev/null -order 1 -write-vocab /tmp/voc -text $file 2> /dev/null
-  vocab=`wc -l /tmp/voc |awk '{print $1}'`
+  vocab=`cat $file |  tr " " '\n' | sort -u |wc -l`
   echo "$file: $vocab"
 done
-rm /tmp/voc
- 
