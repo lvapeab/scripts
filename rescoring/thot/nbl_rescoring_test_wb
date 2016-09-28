@@ -1,0 +1,641 @@
+#!/bin/bash
+
+export LD_LIBRARY_PATH=/home/lvapeab/smt/software/tcl/lib
+SRILMDIR=/home/lvapeab/smt/software/srilm/bin/i686-m64
+RNNLMDIR=/home/lvapeab/smt/software/rnnlm-0.4b
+SCRIPTDIR=/home/lvapeab/smt/software/scripts
+utildir=/home/lvapeab/smt/software/thot_github/utils
+
+
+
+
+
+AWK=/usr/bin/awk
+SORT=/usr/bin/sort
+sortpars="-S 131072"
+sortT="yes"
+sortm="yes"
+SPLIT=/usr/bin/split
+SED=/bin/sed
+GREP=/bin/grep
+SED=/bin/sed
+UNIQ=/usr/bin/uniq
+BASENAME=/usr/bin/basename
+SSH=/usr/bin/ssh
+HEAD=/usr/bin/head
+TAIL=/usr/bin/tail
+MKTEMP=/bin/mktemp
+QSUB=/home/apps/oge/bin/linux-x64/qsub
+QSUB_WORKS="yes"
+QSUB_TERSE_OPT=""
+QSTAT=/home/apps/oge/bin/linux-x64/qstat
+QRLS=/home/apps/oge/bin/l/qrls
+
+
+
+usage(){
+    echo "Usage: weightAdj -tdir <sdir> -u <string> -va <float> ... <float> [-bdir <string>][-iv <float> ... <float>] [-pr <int>] [-qs <string>] [-sdir <string>] -wgdir <string> -o <string> [-v] [-debug] [-name <string>]"
+   
+    echo " -tdir <string>       : Absolute path of a directory for storing temporary"
+    echo " -bdir <string>       : Absolute path of a directory where task files are"
+    echo " -wgdir <string>      : Absolute path where n-best lists from wordgraphs are."
+    echo " -pr <int>            : Number of processors used to compute the target function (Default 1)"
+    echo " -va <float>...<float>: Set fixed and non-fixed variable values."
+    echo "                        The number of variables and their meaning depends"
+    echo "                        on the target function you want to adjust."
+    echo "                        Each value equal to -0 is considered a non fixed value."
+    echo " -iv <float>...<float>: Initial values for the variables (fixed values set by"
+    echo "                        -va are not affected by -iv)."
+    echo "-qs <string>                    Specific options to be given to the qsub"
+    echo "                                command (example: -qs \"-l pmem=1gb\")."
+    echo ""
+    echo "-name <string>        : Set suffixes for the task."
+
+    echo "-sdir <string>                  Absolute path of a directory common to all"
+    echo "                                processors. If not given, the directory for"
+    echo "                                temporaries will be used (/tmp or the "
+    echo "                                directory given by means of the -T option)."
+    echo ""
+    echo " -ftol <float>        : Fractional convergence tolerance"
+    echo "                        (${ftol} by default)."
+    echo " -r <string>          : Resume weight adjustment using file <string> containing"
+    echo "                        a previously generated adj.img file."
+    echo " -v                   : Verbose mode."
+    echo " -debug               : After ending, do not delete temporary files"
+    echo " --help               : Display this help and exit."
+    echo " -o <string>          : Set output files prefix name."
+    echo " -u <string>          : Path of the executable file involved in the calculation"
+    echo "                        of the target function to minimize given the values of"
+    echo "                        a set of variables."
+}
+
+str_is_option()
+{
+    echo "" | ${AWK} -v s=$1 '{if(!match(s,"-[a-zA-Z]")) print "0"; else print "1"}' 
+}
+
+
+exclude_readonly_vars()
+{
+    ${AWK} -F "=" 'BEGIN{                                                                                                                                    
+                         readonlyvars["BASHOPTS"]=1                                                                                                          
+                         readonlyvars["BASH_VERSINFO"]=1                                                                                                     
+                         readonlyvars["EUID"]=1                                                                                                              
+                         readonlyvars["PPID"]=1                                                                                                              
+                         readonlyvars["SHELLOPTS"]=1                                                                                                         
+                         readonlyvars["UID"]=1                                                                                                               
+                        }                                                                                                                                    
+                        {                                                                                                                                    
+                         if(!($1 in readonlyvars)) printf"%s\n",$0                                                                                           
+                        }'
+}
+
+
+exclude_bashisms()
+{
+    $AWK '{if(index($1,"=(")==0) printf"%s\n",$0}'
+}
+
+write_functions()
+{
+ for f in `${AWK} '{if(index($1,"()")!=0) printf"%s\n",$1}' $0`; do
+        $SED -n /^$f/,/^}/p $0
+        # $AWK -v f=$f '{                                                                                                                                   
+        #                if($1==f)                                                                                                                          
+        #                {                                                                                                                                          #                 printf"%s\n",$0                                                                                                                   
+        #                 found=1                                                                                                                           
+        #                }                                                                                                                                          #                else                                                                                                                                       #                {                                                                                                                                          #                 if(found) printf"%s\n",$0                                                                                                                 #                 if($1=="}") found=0                                                                                                                       #                }                                                                                                                                          #               }' $0                                                                                                                                
+    done
+
+
+}
+
+create_script()
+{
+    # Init variables                                                                                                                                         
+    local name=$1
+    local command=$2
+
+    # Write environment variables                                                                                                                            
+    set | exclude_readonly_vars | exclude_bashisms > ${name}
+
+    # Write functions if necessary                                                                                                                           
+    $GREP "()" ${name} -A1 | $GREP "{" > /dev/null || write_functions >> ${name}
+
+    # Write PBS directives                                                                                                                                   
+    echo "#PBS -o ${name}.o\${PBS_JOBID}" >> ${name}
+    echo "#PBS -e ${name}.e\${PBS_JOBID}" >> ${name}
+    echo "#$ -cwd" >> ${name}
+
+    # Write command to be executed                                                                                                                           
+    echo "${command}" >> ${name}
+
+    # Give execution permission                                                                                                                              
+    chmod u+x ${name}
+}
+
+
+
+
+
+
+change_lm_nbl_frag()
+{
+    echo "** Processing chunk ${fragm} (started at "`date`")..." >> ${output}.log
+
+
+
+    dest=${SDIR}/${fragm}
+    frag=`basename $dest`
+   
+
+
+    # Empty previous eventually not empty corpus                                                                                                             
+    while read -r nbl; do
+	
+
+	nblname=`basename $nbl`
+
+        # Extract sentences from nbl                                                                                                                         
+
+  cat $nbl  | $AWK 'BEGIN{ FS ="\\|\\|\\|"} ; { if(NR>1)print$3;} '> ${SDIR}/phrasesSRILM${TASK}${frag}
+  cat $nbl  | $AWK 'BEGIN{ FS ="\\|\\|\\|"} ; { if(NR>1)print(NR-1)$3;} '> ${SDIR}/phrases${TASK}${frag}
+                                                                                                                                                             
+
+  # Obtain word probabilities from SRILM for the extracted senteces                                                                                          
+  ${SRILMDIR}/ngram -lm ${SRILM} -order $order -ppl ${SDIR}/phrasesSRILM${TASK}${frag} -debug 2 > ${SDIR}/temp.ppl${TASK}${frag} -unk  #2>&1                      
+
+  # Convert SRILM probabilities file to RNNLM format                                                                                                         
+  ${RNNLMDIR}/convert < ${SDIR}/temp.ppl${TASK}${frag}  >${SDIR}/ngram${TASK}${frag} #2>&1                                                                   
+
+  #Obtain sentence probability according RNNLM and SRILM's interpolation                                                                                    
+
+
+                                                                                                                                                             
+echo "${RNNLMDIR}/rnnlm -rnnlm ${RNNLM} -test  ${SDIR}/phrases${TASK}${frag} -lm-prob ${SDIR}/ngram${TASK}${frag} -nbest -lambda ${lambda} > ${SD\
+IR}/interP${TASK}${frag}" >/home/lvapeab/llamadaRNNLM
+
+ 
+  ${RNNLMDIR}/rnnlm -rnnlm ${RNNLM} -test  ${SDIR}/phrases${TASK}${frag} -lm-prob ${SDIR}/ngram${TASK}${frag} -nbest -lambda ${lambda} > ${SD\
+IR}/interP${TASK}${frag}
+  tail -n +6 ${SDIR}/interP${TASK}${frag}|head -n -8 > ${SDIR}/newp${TASK}${frag}
+
+  # Substitute previous LM probabilities by newest RNNLM probs                                                                                               
+        echo -n "">${SDIR}/newLMp${TASK}${frag}
+
+	cat $nbl | tail -n +2 > ${SDIR}/wg2${TASK}${frag}
+       while read -r -u 4 wgprob && read -r -u 5 rnnprob ;
+        do
+            echo "$wgprob"  | awk -v newp=$rnnprob  '{if(NR>0)$4=newp; print $0}'>>${SDIR}/${nblname}.RNN
+
+        done 4<${SDIR}/wg2${TASK}${frag}  5<${SDIR}/newp${TASK}${frag}
+
+ done <${dest}
+
+    # Mark corpus as finished                                                                                                                                
+    #mv ${SDIR}/newCorpus${TASK}${frag} ${SDIR}/newCorpus${TASK}${frag}.final
+
+    # Write date to log file                                                                                                                                 
+    echo "Processing of chunk ${fragm} finished ("`date`")" >> ${output}.log
+              
+    echo "" > ${SDIR}/qs_change_lm_nbl_${fragm}_end
+}
+
+
+launch()
+{
+    local file=$1
+    ### qsub invocation                                                                                                                                      
+    if [ "${QSUB_WORKS}" = "no" ]; then
+        $file &
+    else
+        local jid=$($QSUB ${QSUB_TERSE_OPT} ${QS_OPTS} $file | ${TAIL} -1)
+    fi
+    ###################                                                                                                                                      
+
+
+}
+
+sync()
+{
+    local files="$1"
+    end=0
+    while [ $end -ne 1 ]; do
+        sleep 3
+        end=1
+        for f in ${files}; do
+            if [ ! -f ${f}_end ]; then
+                end=0
+                break
+            fi
+        done
+    done
+}
+
+
+if [ "${USE_NR_ROUTINES}" = "yes" ]; then
+    ftol=0.01
+else
+    ftol=0.0001
+fi
+ 
+
+
+tdir=""
+sdir=""
+init_vals=""
+task=""
+va_given=0
+o_given=0
+u_given=0
+pr_given=0
+wg_given=0
+qs_given=0
+bdir_given=0
+iv_opt=""
+verbose_opt=""
+ftol_opt=""
+r_opt=""
+debug=""
+b_dir=""
+tmpdir=""
+order=3
+r_given=0
+train_given=0
+test_given=0
+rnnlm_given=0
+lambda_given=0
+
+
+
+
+
+
+
+while [ $# -ne 0 ]; do
+ case $1 in
+        "--help") usage
+            exit 0
+            ;;
+        "-tdir") shift
+            if [ $# -ne 0 ]; then
+                tmpdir=$1                
+            else
+                tmpdir=""
+            fi
+            ;;
+        "-name") shift
+            if [ $# -ne 0 ]; then
+                task=$1
+            else
+                task=""
+            fi
+            ;;
+     "-bdir") shift
+            if [ $# -ne 0 ]; then
+                b_dir=$1
+		bdir_given=1
+            else
+                b_dir=""
+            fi
+            ;;
+
+        "-sdir") shift
+            if [ $# -ne 0 ]; then
+                sdir=$1
+            else
+                sdir=""
+            fi
+            ;;
+
+        "-order") shift
+            if [ $# -ne 0 ]; then
+                order=$1                
+            else
+                order=3
+            fi
+            ;;
+        "-va") shift
+            if [ $# -ne 0 -a ! "`str_is_option $1`" = "1" ]; then
+                end=0
+                while [ $end -eq 0 ]; do
+                    vars=$vars" "$1
+                    if [ $# -le 1 ]; then
+                        end=1
+                    else
+                        if [ "`str_is_option $2`" = "1" ]; then
+                            end=1
+                        else
+                            shift
+                        fi
+                    fi
+                done            
+                va_given=1
+            fi
+            ;;
+
+
+        "-iv") shift
+            if [ $# -ne 0 -a ! "`str_is_option $1`" = "1" ]; then
+                end=0
+                while [ $end -eq 0 ]; do
+                    init_vals=$init_vals" "$1
+                    if [ $# -le 1 ]; then
+                        end=1
+                    else
+                        if [ "`str_is_option $2`" = "1" ]; then
+                            end=1
+                        else
+                            shift
+                        fi
+                    fi
+                done            
+                iv_opt="-iv ${init_vals}"
+            fi
+            ;;
+
+     "-o") shift
+            if [ $# -ne 0 ]; then
+                outpref=$1
+                o_given=1
+            else
+		o_given=0
+		    fi
+            ;;
+
+
+
+    "-rnnlm") shift
+            if [ $# -ne 0 ]; then
+                RNNLM=$1
+                rnnlm_given=1
+            else
+		rnnlm_given=0
+                    fi
+            ;;
+
+
+    "-train") shift
+            if [ $# -ne 0 ]; then
+                TRAIN=$1
+                train_given=1
+            else
+                train_given=0
+                    fi
+            ;;
+    "-test") shift
+            if [ $# -ne 0 ]; then
+                TEST=$1
+                test_given=1
+            else
+                test_given=0
+                    fi
+            ;;
+
+    "-lambda") shift
+            if [ $# -ne 0 ]; then
+                lambda=$1
+                lambda_given=1
+            else
+               lambda_given=0
+                    fi
+            ;;
+
+
+     "-wgdir") shift
+            if [ $# -ne 0 ]; then
+                WGDIR=$1
+                wg_given=1
+            else
+		wg_given=0
+		    fi
+            ;;
+
+        "-pr") shift
+            if [ $# -ne 0 ]; then
+		num_hosts=$1
+                pr_given=1
+            else
+		num_hosts="1"
+                pr_given=0
+            fi
+            ;;
+        "-qs") shift
+            if [ $# -ne 0 ]; then
+                qs_opts=$1
+                qs_given=1
+            else
+                qs_given=0
+            fi
+            ;;
+        "-u") shift
+            if [ $# -ne 0 ]; then
+                target_func=$1
+                u_given=1
+            else
+                u_given=0
+            fi
+            ;;
+
+        "-ftol") shift
+            if [ $# -ne 0 ]; then
+                ftol=$1
+		ftol_opt= "-ftol ${ftol}"
+            fi
+            ;;
+        "-r") shift
+            if [ $# -ne 0 ]; then
+                r_val=$1
+                r_given=1
+		r_opt="-r ${r_val}"
+            else
+                r_given=0
+            fi
+            ;;
+        "-debug") debug="-debug"
+            ;;
+        "-v") verbose_opt="-v"
+            ;;
+    esac
+    shift
+done
+
+#### Verify parameters
+
+
+if [ ${va_given} -eq 0 ]; then
+    # invalid parameters 
+    echo "Error: -va option not given"
+    exit 1
+fi
+if [ ${o_given} -eq 0 ]; then
+    # invalid parameters 
+    echo "Error: -o option not given"
+    exit 1
+fi
+if [ ${wg_given} -eq 0 ]; then
+    # invalid parameters                                                                                                                                     
+    echo "Error: -wgdir option not given"
+    exit 1
+fi
+if [ ${u_given} -eq 0 ]; then
+    # invalid parameters 
+    echo "Error: -u option not given"
+    exit 1
+else
+    if [ ! -x ${target_func} ]; then
+        echo "Error: ${target_func} cannot be executed"
+        exit 1
+    fi
+     
+    
+fi
+
+
+if [ ${rnnlm_given} -eq 0 ]; then
+    # invalid parameters                                                                                                                                                                             
+    echo "Error: -rnnlm option not given"
+    exit 1
+fi
+
+if [ ${train_given} -eq 0 ]; then
+    # invalid parameters                                                                                                                                                                             
+    echo "Error: -train option not given"
+    exit 1
+fi
+
+if [ ${test_given} -eq 0 ]; then
+    # invalid parameters                                                                                                                                                                             
+    echo "Error: -test option not given"
+    exit 1
+fi
+
+if [ ${lambda_given} -eq 0 ]; then
+    # invalid parameters                                                                                                                                                                             
+    echo "Error: -lambda option not given"
+    exit 1
+fi
+
+
+#Parameters are OK
+
+# create TMP directory
+TMP="${tmpdir}/${task}_maximize_bleu_$$"
+mkdir -p  $TMP || { echo "Error: temporary directory cannot be created" ; exit 1; }
+
+# create shared directory
+if [ -z "$sdir" ]; then
+    # if not given, SDIR will be the same as $TMP
+    SDIR=$TMP
+
+    # remove temp directories on exit
+    if [ "$debug" != "-debug" ]; then
+        trap "rm -rf $TMP 2>/dev/null" EXIT
+    fi
+else
+    SDIR="${sdir}/${task}_sdir_maximize_bleu_$$"
+    mkdir -p $SDIR || { echo "Error: shared directory cannot be created" ; exit 1; }
+    
+    # remove temp directories on exit
+    if [ "$debug" != "-debug" ]; then
+        trap "rm -rf $TMP $SDIR 2>/dev/null" EXIT
+    fi
+fi
+
+export NHOSTS=${num_hosts}
+export QS_OPTS=${qs_opts}
+export WGDIR=${WGDIR}
+export SDIR=${SDIR}
+export TMP=${TMP}
+export TMPDIR=${tmpdir}
+export TASK=${task}
+export BASEDIR=${b_dir}
+export TEST=${TEST}
+
+
+# create log file                                                                                                                                           \
+                                                                                                                                                             
+
+    output=${TMP}/${TASK}.log
+
+# Train n-gram model with SRILM.                                                                                                  \                          
+                                                                                                                                                            \
+  echo "Training n-gram model" >> ${output}.log
+
+${SRILMDIR}/ngram-count -text ${TRAIN} -order $order -lm ${SDIR}/templm${TASK} -gt3min 1 -gt4min 1 -gt5min 1 -wbdiscount -interpolate -unk
+export SRILM=${SDIR}/templm${TASK}
+
+
+
+
+    echo "*** Parallel process of file $a3_file started at: " `date` >> ${output}.log
+    echo "">> ${output}.log
+
+# process the input           
+
+
+
+                                                                                                                                               
+
+# fragment the input                                                                                                                                        \
+                                                                                                                                                             
+      echo "Spliting directory..." >> ${output}.log
+
+      input_size=`ls -l ${WGDIR}/*.nbl | wc -l`
+      if [ ${input_size} -lt ${NHOSTS} ]; then
+          echo "Error: problem too small"
+          exit 1
+      fi
+      frag_size=`expr ${input_size} / ${NHOSTS}`
+      frag_size=`expr ${frag_size} + 1`
+      nlines=${frag_size}
+
+      ls -l ${WGDIR}/*.nbl |awk '{print $9}'|split -l $nlines - ${SDIR}/${TASK}frag\_ ||exit 1
+
+# parallel estimation for each fragment                                                                                                                     \
+                                                                                                                                                             
+      i=1
+      for f in `ls $SDIR/${TASK}frag\_*`; do
+          fragm=`basename $f`
+
+          create_script ${SDIR}/qs_change_lm_nbl_${fragm} change_lm_nbl_frag
+          launch ${SDIR}/qs_change_lm_nbl_${fragm}
+
+          i=`expr $i + 1`
+          qs_change_lm_nbl="${qs_change_lm_nbl} ${SDIR}/qs_change_lm_nbl_${fragm}"
+      done
+
+### Check that all queued jobs are finished                                                                                                                 \
+sync "${qs_change_lm_nbl}"
+
+# finish log file                                                                                                                                           \
+                                                                                                                                                             
+      echo "">> ${output}.log
+      echo "*** Parallel process finished at: " `date` >> ${output}.log
+
+# remove temporal files                                                                                                                                     \
+                                                                                                                                                             
+
+
+     rm ${SDIR}/qs_change_lm_nbl*
+
+
+
+
+
+
+
+
+
+echo "Calling targetfunc:" >> ${output}.log
+
+echo "${target_func} ${SDIR} ${init_vals}"
+
+
+#CALL DHS
+${target_func} ${TMP} ${init_vals}
+
+
+
+
+echo "Process finished at:" `date`>>${output}.log

@@ -1,0 +1,35 @@
+#!/bin/bash
+#$ -l h_rt=144:00:00
+
+export LD_LIBRARY_PATH=/home/lvapeab/smt/software/tcl/lib
+srilmpath=/home/lvapeab/smt/software/srilm/bin/i686
+rnnpath=/home/lvapeab/smt/software/rnnlm-0.4b
+
+trainfile=/home/lvapeab/smt/tasks/xerox/enes/DATA/Es
+validfile=/home/lvapeab/smt/tasks/xerox/enes/DATA/Es-dev
+destdir=/home/lvapeab/RNNLMs/Xerox
+
+mkdir $destdir
+
+ for class_size in 200  
+    do
+	for  bptt_steps in 9
+	do
+	for hidden_size in 400
+	do
+#	    for bptt_block in 10 20 
+	
+
+#	    do 
+
+
+################################
+# TRAINING OF RNNLM
+################################
+
+		$rnnpath/rnnlm -train $trainfile -valid $validfile -rnnlm $destdir"/lm-n"$hidden_size"c"$class_size"steps"$bptt_steps".mod" -hidden $hidden_size -debug 2 -class $class_size -bptt $bptt_steps 
+
+
+	done
+    done
+done

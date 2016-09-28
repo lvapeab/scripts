@@ -1,0 +1,5 @@
+•Generate co-occurrence file 
+	Sn2cooc.out french.vcb english.vcb frenchenglish.snt > fe.cooc 
+	
+•Run GIZA++ located within the GIZA++ package 
+	./GIZA++ -S french.vcb –T english.vcb –C frenchenglish.snt –CoocurrenceFile fe.cooc 

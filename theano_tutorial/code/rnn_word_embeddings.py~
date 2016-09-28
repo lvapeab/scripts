@@ -1,0 +1,74 @@
+#Recurrent Neural Network Model¶
+#Raw input encoding
+#A token corresponds to a word. Each token in the ATIS vocabulary is associated to an index. Each sentence is a array of indexes (int32). 
+#Then, each set (train, valid, test) is a list of arrays of indexes. A python dictionnary is defined for mapping the space of indexes to the space of words.
+import theano, numpy
+from theano import tensor as T
+
+#Given a sentence i.e. an array of indexes, and a window size i.e. 1,3,5,..., we need to convert each word in the sentence to a context window surrounding this particular word. 
+def contextwin(l, win):
+    '''
+    win :: int corresponding to the size of the window
+    given a list of indexes composing a sentence
+
+    l :: array containing the word indexes
+
+    it will return a list of list of indexes corresponding
+    to context windows surrounding each word in the sentence
+    '''
+    assert (win % 2) == 1
+    assert win >= 1
+    l = list(l)
+
+    lpadded = win // 2 * [-1] + l + win // 2 * [-1]
+    out = [lpadded[i:(i + win)] for i in range(len(l))]
+
+    assert len(out) == len(l)
+    return out
+
+
+class RNNSLU(object):
+    ''' elman neural net model '''
+    def __init__(self, nh, nc, ne, de, cs):
+        '''
+        nh :: dimension of the hidden layer
+        nc :: number of classes
+        ne :: number of word embeddings in the vocabulary
+        de :: dimension of the word embeddings
+        cs :: word window context size
+        '''
+        # parameters of the model
+        self.emb = theano.shared(name='embeddings',
+                                 value=0.2 * numpy.random.uniform(-1.0, 1.0,
+                                 (ne+1, de))
+                                 # add one for padding at the end
+                                 .astype(theano.config.floatX))
+        self.wx = theano.shared(name='wx',
+                                value=0.2 * numpy.random.uniform(-1.0, 1.0,
+                                (de * cs, nh))
+                                .astype(theano.config.floatX))
+        self.wh = theano.shared(name='wh',
+                                value=0.2 * numpy.random.uniform(-1.0, 1.0,
+                                (nh, nh))
+                                .astype(theano.config.floatX))
+        self.w = theano.shared(name='w',
+                               value=0.2 * numpy.random.uniform(-1.0, 1.0,
+                               (nh, nc))
+                               .astype(theano.config.floatX))
+        self.bh = theano.shared(name='bh',
+                                value=numpy.zeros(nh,
+                                dtype=theano.config.floatX))
+        self.b = theano.shared(name='b',
+                               value=numpy.zeros(nc,
+                               dtype=theano.config.floatX))
+        self.h0 = theano.shared(name='h0',
+                                value=numpy.zeros(nh,
+                                dtype=theano.config.floatX))
+
+        # bundle
+        self.params = [self.emb, self.wx, self.wh, self.w,
+                       self.bh, self.b, self.h0]
+
+        idxs = T.imatrix()
+        x = self.emb[idxs].reshape((idxs.shape[0], de*cs))
+        y_sentence = T.ivector('y_sentence')  # labels

@@ -1,0 +1,90 @@
+•Files Created by plain2snt 
+	• english.vcb consists of:
+		- each word from the english corpus 
+		- corresponding frequency count for each word 
+		- an unique id for each word 
+
+	• french.vcb 
+		- each word from the french corpus 
+		- corresponding frequency count for each word 
+		- an unique id for each word 
+		
+	• frenchenglish.snt consists of: 
+		- each sentence from the parallel english and french corpi translated into the unique number for each word
+
+•Files Created by the mkcls package 
+	• .vcb.classes files contains:
+		- an alphabetical list of all words (including punctuation) 
+		- each words corresponding frequency count 
+
+	• .vcb.classes.cats files contains 
+		- a list of frequencies 
+		- a set of words for that corresponding frequency 
+
+•Files created by GIZA++: 
+	• Decoder.config 
+		- file used with the ISI Rewrite Decoder (http://www.isi.edu/licensed-sw/rewrite-decoder)
+	• ti.final 
+		- file contains word alignments from the french and english corpus
+		- word alignments are in the specific words unique id
+		- the probability of that alignment is given after each set of numbers. E.g:
+			3 0 0.237882 
+			1171 1227 0.963072
+	• actual.ti.final 
+		- file contains word alignments from the french and english corpus 
+		- words alignments are the actual words not their unique id’s 
+		- the probability of that is alignment is given after each set of words. E.g.: 
+			of NULL 0.237882 
+			Austin Austin 0.963072
+	• perp 
+		- list of perplexity for each iteration and model 
+
+	• trn.src.vcb 
+		- list of french words with their unique id and frequency counts
+		- similar to french.vcb 
+	• trn.trg.vcb 
+		- list of english words with their unique id and frequency counts 
+		- similar to english.vcb
+	• tst.src.vcb 
+		- blank
+	• tst.trg.vcb 
+		- blank
+	• a3.final 
+		- table with the following format:
+			• i j l m p ( i / j, l, m) 
+				• j = position of target sentence 
+				• i = position of source sentence 
+				• l = length of the source sentence 
+				• m = length of the target sentence 
+				• p( i / j, l, m) = is the probability that a source word in position i is moved to position j in a 
+									pair of sentences of length l and m
+									
+		- z.B:
+			• 0 1 1 60 5.262135e-06 
+				• 0 – indicates position of target sentence 
+				• 1 – indicates position of source sentence 
+				• 1 – indicates length of source sentence 
+				• 60 indicates length of target sentence 
+				• 5.262135e-06 – is the probability that a source word in position 1 is moved position 0 of 
+				  sentences of length 1 and 60 
+
+	• A3.final 
+		- matches the english sentence to the french sentence and give the match an alignment score
+	• t3.final 
+		- table after all iterations of Model 4 training 
+	• d3.final 
+		– similar to a3.final with positions i and j switched 
+
+	• D4.final 
+		- distortion table for IBM-4 
+
+	• d4.final 
+		- translation table for Model 4 
+
+	• n3.final 
+		- contains the probability of the each source token having zero fertility,  one fertility, … N fertility 
+	• p0-3.final 
+		- probability of inserting null after a source word 
+ 
+	• gizacfg 
+		- contains parameter settings that were used in this training (training can be duplicated exactly)

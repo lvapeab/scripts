@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Dados dos ficheros, uno con los nbest de un wg y otro con las probabilidades del LM reestimadas según el RNNLM,
+# sustituye las probabilidades del wg por las del RNNLM. 
+
+wg=$1
+rnnlmprob=$2
+TDIR=$3
+cat $wg | tail -n +2 > ${TDIR}/wg2
+
+while read -r -u 4 wgprob && read -r -u 5 rnnprob;
+do
+
+    echo "$wgprob"  | awk -v newp=$rnnprob '{if(NR>0)$4=newp; print $0}'
+
+done 4<  ${TDIR}/wg2  5<$rnnlmprob
+
+
+rm ${TDIR}/wg2

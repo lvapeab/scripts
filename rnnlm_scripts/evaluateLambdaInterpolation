@@ -1,0 +1,49 @@
+#!/bin/bash
+
+#$ -l h_rt=118:00:00
+#$ -l h_vmem=8g      
+
+export LD_LIBRARY_PATH=/home/lvapeab/smt/software/tcl/lib
+srilmpath=/home/lvapeab/smt/software/srilm/bin/i686-m64
+rnnpath=/home/lvapeab/smt/software/rnnlm-0.4b
+
+
+#trainfile=/home/lvapeab/smt/tasks/xerox/enes/DATA/Es                             
+#validfile=/home/lvapeab/smt/tasks/xerox/enes/DATA/Es-dev   
+
+
+
+trainfile=/home/lvapeab/smt/tasks/ue/esen/DATA/training.en
+validfile=/home/lvapeab/smt/tasks/ue/esen/DATA/dev.en
+lmspath=/home/lvapeab/RNNLMs/ue
+
+
+
+
+
+#################################################
+# TRAINING OF N-GRAM MODEL, USING SRILM TOOLS
+#################################################
+
+
+for order in  5; do
+
+           $srilmpath/ngram-count -text $trainfile -order $order -lm $lmspath/templm  -kndiscount -interpolate -unk -gt3min 0 -gt4min 0 -gt5min 0
+           $srilmpath/ngram -lm $lmspath/templm -order $order -ppl $validfile -debug 2 > $lmspath/temp.ppl -unk
+           $rnnpath/convert <$lmspath/temp.ppl >$lmspath/ngram.txt
+
+##################################################
+# MODELS ARE COMBINED HERE, PERPLEXITY IS REPORTED
+############################################~#####
+           
+
+
+	  for rnnlm in $lmspath/*.mod 
+	   do
+	   for lambda in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 0.99
+            do
+	       echo "Rnnlm: $rnnlm    lambda: $lambda"
+                $rnnpath/rnnlm -rnnlm   $rnnlm -test $validfile -lm-prob $lmspath/ngram.txt -lambda $lambda >> ${rnnlm}-${lambda}-${order}.combppl
+            done
+        done
+done

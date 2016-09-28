@@ -1,0 +1,35 @@
+#!/bin/bash
+#$ -l h_rt=144:00:00
+
+export LD_LIBRARY_PATH=/home/lvapeab/smt/software/tcl/lib
+srilmpath=/home/lvapeab/smt/software/srilm/bin/i686
+rnnpath=/home/lvapeab/smt/software/rnnlm-0.4b
+
+trainfile=/home/lvapeab/smt/tasks/turista/DATA/e-train
+validfile=/home/lvapeab/smt/tasks/turista/DATA/e-dev
+destdir=/home/lvapeab/RNNLMs/Turista
+
+mkdir $destdir
+
+ for class_size in 200  
+    do
+  for  bptt_steps in 6 7 8 9 10 20
+	do
+	for hidden_size in 50
+	do
+#	    for bptt_block in 10 20 
+	
+
+#	    do 
+
+
+################################
+# TRAINING OF RNNLM
+################################
+
+		$rnnpath/rnnlm -train $trainfile -valid $validfile -rnnlm $destdir"/lm-n"$hidden_size"c"$class_size"bptt"$bptt_steps".mod" -hidden $hidden_size -debug 2 -class $class_size -bptt $bptt_steps
+
+
+	done
+    done
+done

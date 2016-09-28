@@ -1,0 +1,10 @@
+
+
+
+deformat nbest_file output_prefix
+
+nbl_rescoring [........]
+
+qs_rerank rescored_nbest_list [.........]
+
+format nbest_file output_prefix

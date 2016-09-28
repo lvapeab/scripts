@@ -1,0 +1,30 @@
+# CLuse - v.0.1.1
+# version log
+
+# v.0.1.1 - Fixed some bugs
+#         - Showing processes with error
+
+#!/bin/bash
+
+yellow='\e[01;33m'
+NC='\e[0m'
+
+echo "Running"
+echo "-------"
+#for l in $(
+qstat -u "*" | grep " r " | awk '{print $4,$9}' | sed 's/user//g' |awk 'NF>1' | awk '{a[$1]+=$2}END{for(i in a) print a[i]" "i;}' | sort -nr 
+#); do
+# echo -e $l | sed s/damarsi1/${yellow}damarsi1${NC}/g
+#done
+echo ""
+echo "Queued"
+echo "------"
+qstat -u "*" | egrep " qw|hqw" | awk '{if($9 == ""){print $4,$8}else{split($9,a,"-");print $4, a[2]-a[1]+1;}}' | sed 's/user//g' |awk 'NF>1' | awk '{a[$1]+=$2}END{for(i in a) print a[i]" "i;}' | sort -nr
+echo ""
+echo "Error"
+echo "-----"
+qstat -u "*" | egrep "Eq" | awk '{if($9 == ""){print $4,$8}else{split($9,a,"-");print $4, a[2]-a[1]+1;}}' | sed 's/user//g' |awk 'NF>1' | awk '{a[$1]+=$2}END{for(i in a) print a[i]" "i;}' | sort -nr
+echo ""
+echo "In GPU"
+echo "-----"
+qstat -u "*" | grep "gpus" | awk '{print $4,$9}' | sed 's/user//g' |awk 'NF>1' | awk '{a[$1]+=$2}END{for(i in a) print a[i]" "i;}' | sort -nr
