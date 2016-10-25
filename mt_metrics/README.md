@@ -1,11 +1,10 @@
-## BLEU computation script
-Code extracted from the [Thot package] (https://github.com/daormar/thot)
+# BLEU computation script
+[Thot] (https://github.com/daormar/thot) bleu computer
 
-# Instructions:
+## Instructions:
 `make`
 
-``
-thot_calc_bleu -r <string> -t <string> [-sm] [-v]
+``thot_calc_bleu -r <string> -t <string> [-sm] [-v]
 
 -r <string>       File containing the reference sentences
 
@@ -13,5 +12,4 @@ thot_calc_bleu -r <string> -t <string> [-sm] [-v]
 
 -sm               Calculate smoothed BLEU.
 
--v                Verbose mode
-``
+-v                Verbose mode``
