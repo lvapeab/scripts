@@ -20,7 +20,7 @@ cat $file2 |  tr " " '\n' | sort -u > /tmp/voc2
 
 
 union_size=`cat /tmp/voc1 /tmp/voc2| tr " " '\n' | sort -u |wc -l`
-intersection_size=`grep -f /tmp/voc1 /tmp/voc2 | sort -u | wc -l`
+intersection_size=`grep -Fxf /tmp/voc1 /tmp/voc2 | sort -u | wc -l`
 
 
 vocab1_size=`wc  -l /tmp/voc1 `
@@ -32,4 +32,4 @@ echo "$file2 vocabulary size: $vocab2_size"
 echo "$file1 ∪ $file2 vocabulary size: $union_size"
 echo "$file1 ∩ $file2 vocabulary size: $intersection_size"
 
-rm /tmp/voc1 /tmp/voc2
+#rm /tmp/voc1 /tmp/voc2
