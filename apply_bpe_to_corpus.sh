@@ -23,7 +23,7 @@ else
 fi
 
 # Prepare output dir
-dest_dir=${corpus_path}/${l1}${l2}/bpe
+dest_dir=${corpus_path}/bpe
 mkdir -p ${dest_dir}
 
 # Get BPE codes
@@ -36,13 +36,13 @@ done
 
 for lang in $l1 $l2 ; do
     echo "Applying BPE to training sets..."
-    ${bpe_dir}/apply_bpe.py -c  ${dest_dir}/training_codes.${lang} > ${dest_dir}/training.${lang}
+    ${bpe_dir}/apply_bpe.py -c  ${dest_dir}/training_codes.${lang} < ${corpus_path}/training.${lang} > ${dest_dir}/training.${lang}
 done
 
 
 echo "Applying BPE to dev and test sets..."
-${bpe_dir}/apply_bpe.py -c  ${dest_dir}/training_codes.${l1} > ${dest_dir}/dev.${l1}
-${bpe_dir}/apply_bpe.py -c  ${dest_dir}/training_codes.${l1} > ${dest_dir}/test.${l1}
+${bpe_dir}/apply_bpe.py -c  ${dest_dir}/training_codes.${l1} < ${corpus_path}/dev.${l1} > ${dest_dir}/dev.${l1}
+${bpe_dir}/apply_bpe.py -c  ${dest_dir}/training_codes.${l1} < ${corpus_path}/test.${l1}> ${dest_dir}/test.${l1}
 
 cat ${corpus_path}/dev.${l2} > ${dest_dir}/dev.${l2}
 cat ${corpus_path}/test.${l2} > ${dest_dir}/test.${l2}
