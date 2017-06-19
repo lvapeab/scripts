@@ -14,7 +14,10 @@ def parse_args():
     parser.add_argument("-v", "--verbosity", action="store_true", dest="verbosity", help="Verbose?")
     parser.add_argument("-t", "--hypotheses", required=True, nargs='+', help="Hypotheses file.")
     parser.add_argument("-r", "--references", required=True, help="References file.")
-
+    parser.add_argument("-b", "--bins", required=False, default=50,
+                        help="Number of bins of histogram. Default: 50")
+    parser.add_argument("-lr", "--len-ratio", action="store_true", default=False, required=False,
+                        help="Show length ratio information?")
     parser.add_argument("-a", "--analyze", required=False, default=True, help="Analyze the results.")
 
     return parser.parse_args()
@@ -33,9 +36,8 @@ n_systems = len(args.hypotheses)
 
 color = iter(cm.rainbow(np.linspace(0, 1, n_systems)))
 
-for hypothesis_filename in args.hypotheses:
+for n_system, hypothesis_filename in enumerate(args.hypotheses):
     c = next(color)
-
     hypotheses = open(hypothesis_filename, 'r')
     system_name = hypothesis_filename
     hypotheses_lines = hypotheses.read().split('\n')
@@ -43,9 +45,7 @@ for hypothesis_filename in args.hypotheses:
 
     hypotheses_lines = hypotheses_lines[:-1] if hypotheses_lines[-1] == '' else hypotheses_lines
     assert len(hypotheses_lines) == len(references_lines), 'Number of hypotheses and references must match'
-
     sentence_scorer = SentenceBleuScorer('')
-
     scoring_list = [{}] * n_lines
 
     for i, (hypothesis, reference) in enumerate(zip(hypotheses_lines, references_lines)):
@@ -67,20 +67,27 @@ for hypothesis_filename in args.hypotheses:
         print "\t Arithmetic mean:", np.mean(bleu_scores)
         print "\t Var:", np.var(bleu_scores)
         print "\t Stdev:", np.std(bleu_scores)
-
         n, bins, patches = plt.hist(bleu_scores,
-                                    bins=50,
+                                    bins=args.bins,
                                     rwidth=0.9,
                                     alpha=1 / float(n_systems + 1),
                                     label=str(system_name) + '(Mean BLEU: %.2f)' % np.mean(bleu_scores),
                                     color=c)
+        if args.len_ratio:
+            d = np.digitize(bleu_scores, bins)  # Get the bin of each sentence
+            ratios = np.zeros(len(n) + 2 , dtype='float32')
+            n_elems = np.zeros(len(n) + 2 , dtype='float32')
+            for i, elem in enumerate(d):
+                ratios[elem] += len_ratios[i]
+                n_elems[elem] += 1
+            ratios = ratios / n_elems
+            for i in range(1, args.bins + 1):
+                plt.text(bins[i-1] + 0.001 * 1./(n_system +1), n[i-1]+1, '%.2f' % ratios[i], color=c)
 
-        d = np.digitize(bleu_scores, bins) # Get the bin of each sentence
-        print list(d)
-        print list(bins)
 
 plt.legend(loc='upper right')
 plt.xlabel('%Bleu')
+
 plt.ylabel('#Sentences')
 plt.title(r'$\mathrm{Histogram\ of\ BLEUS}$')
 plt.grid(True)
