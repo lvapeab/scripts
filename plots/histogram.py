@@ -37,7 +37,6 @@ for n_system, data_filename in enumerate(args.data):
     system_name = data_filename
     hypotheses_lines = hypotheses.read().split('\n')
     hypotheses.close()
-    print hypotheses_lines
     scores = hypotheses_lines[:-1] if hypotheses_lines[-1] == '' else hypotheses_lines
     scores_to_plot = np.asarray([float(score) for score in scores])
     print "%s:" % system_name
@@ -52,7 +51,7 @@ for n_system, data_filename in enumerate(args.data):
                                 color=c)
 
 plt.legend(loc='upper right')
-plt.xlabel(args.y_label)
+plt.xlabel(args.x_label)
 
 plt.ylabel(args.y_label)
 plt.title(r'$\mathrm{Histogram\ of\ %s}$' % str(args.title))
