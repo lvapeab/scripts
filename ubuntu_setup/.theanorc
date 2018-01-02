@@ -1,0 +1,26 @@
+[global]
+floatX = float32
+device = cuda
+warn_float64=warn
+
+optimizer_including = cudnn
+cuda.root = /usr/local/cuda-8.0
+dnn.enabled = True
+
+dnn.conv.algo_fwd=time_once
+dnn.conv.algo_bwd_filter=time_once
+dnn.conv.algo_bwd_data=time_once
+#optimizer_excluding=scanOp_pushout_output
+on_unused_input=ignore
+#allow_gc=False
+#optimizer_including=unsafe
+cxxflags = -O3 -ffast-math -funroll-loops -ftracer
+force_device=True
+[nvcc]
+fastmath = True
+flags=-D_FORCE_INLINES
+[blas]
+#ldflags = -lmkl_rt -liomp5 -lpthread
+ldflags = -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -lguide -liomp5 -lmkl_mc -lpthread
+#[gpuarray]
+#preallocate=0.9
