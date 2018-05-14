@@ -8,5 +8,5 @@ then
 fi
 
 for file in  $* ;do
-    grep  -e "automatically translated" -e "Hypo_0" ${file} | |awk 'BEGIN{FS=":"}{ for(i=4; i<NF; i++) printf "%s",$i OFS; if(NF) printf "%s",$NF; printf ORS}'
+    grep  -e "automatically translated" -e "Hypo_0" ${file} |awk 'BEGIN{FS=":"}{ for(i=4; i<NF; i++) printf "%s",$i OFS; if(NF) printf "%s",$NF; printf ORS}'
 done
