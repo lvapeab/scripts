@@ -69,4 +69,4 @@ ${processing_inmt_script} ${tmpdir}/$baseline
 
 
 # Hypothesis testing
-${ic_script} -b ${tmpdir}/${basename1}.scores -t ${tmpdir}/${baselinename}.scores -n ${n} -i ${interval} 
+${ic_script} -t ${tmpdir}/${basename1}.scores -b ${tmpdir}/${baselinename}.scores -n ${n} -i ${interval} 
