@@ -1,5 +1,5 @@
 # BLEU computation script
-[Thot] (https://github.com/daormar/thot) bleu computer
+[Thot](https://github.com/daormar/thot) bleu computer
 
 ## Instructions:
 `make`
