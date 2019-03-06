@@ -44,7 +44,7 @@ done
 
 tmp=`mktemp -d`
 
-for f in ${path}/${task}.${src}${trg}.${split}*.${algo}.*.${loss}.${trg} ; do
+for f in ${path}/${task}.${src}${trg}*.${split}*.${algo}.*.${loss}.${trg} ; do
     echo "$f" >> ${tmp}/names
     calc_bleu -r ~/DATASETS/${task}/${src}${trg}/${split}.${trg} -t ${f} | awk '{print $1" "$2}' >> ${tmp}/bleus
     echo -n "."
