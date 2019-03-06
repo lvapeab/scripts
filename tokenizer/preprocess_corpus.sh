@@ -29,7 +29,7 @@ ${moses_dir}/scripts/tokenizer/tokenizer.perl -l ${l1} -threads 4 <  /tmp/${c1_n
 ${moses_dir}/scripts/tokenizer/tokenizer.perl -l ${l2} -threads 4 <  /tmp/${c2_n}.low  >  /tmp/${c1_n}.tok.${l2}
 
 echo "Cleaning corpus"
-${moses_dir}/scripts/training/clean-corpus-n.perl /tmp/${c1_n}.tok ${l1} ${l2} /tmp/train 1 80
+${moses_dir}/scripts/training/clean-corpus-n.perl /tmp/${c1_n}.tok ${l1} ${l2} /tmp/train 1 175
 
 echo "Shuffling"
 ${thot_dir}/thot_shuffle 4311 /tmp/train.${l1}  > /tmp/tr.${l1}

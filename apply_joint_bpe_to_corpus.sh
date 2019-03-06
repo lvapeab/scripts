@@ -26,9 +26,11 @@ fi
 dest_dir=${corpus_path}/joint_bpe
 mkdir -p ${dest_dir}
 
+ext=`echo "$$"`
+
 echo "Learning joint BPE..."
-cat  ${corpus_path}/training.${l1}  ${corpus_path}/training.${l2} > /tmp/tr
-${bpe_dir}/learn_bpe.py -s ${n_ops} < /tmp/tr  > ${dest_dir}/training_codes.joint
+cat  ${corpus_path}/training.${l1}  ${corpus_path}/training.${l2} > /tmp/tr.${ext}
+${bpe_dir}/learn_bpe.py -s ${n_ops} < /tmp/tr.${ext}  > ${dest_dir}/training_codes.joint
 
 # Apply BPE codes (only for training and dev/test sources)
 
@@ -45,7 +47,7 @@ ${bpe_dir}/apply_bpe.py -c  ${dest_dir}/training_codes.joint < ${corpus_path}/te
 cat ${corpus_path}/dev.${l2} > ${dest_dir}/dev.${l2}
 cat ${corpus_path}/test.${l2} > ${dest_dir}/test.${l2}
 
-rm /tmp/tr
+rm /tmp/tr.${ext}
 echo "Done"
 
 

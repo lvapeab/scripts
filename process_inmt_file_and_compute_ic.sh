@@ -6,7 +6,7 @@ ic_script=/home/lvapeab/smt/software/confidence_intervals/imt_confidence_interva
 if [ $# -lt 1 ]
 then
     echo "Usage: $0 text_file"
-    echo "Processes an inmt log (NMT-Keras) and computes its WSR and MAR confidence intervals by bootstrap resampling"
+    echo "Processes an inmt log (NMT-Keras) and computes its WSR and MAR confidence intervals by bootstrap resampling, using 10,000 shuffles"
     exit 1
 fi
 
@@ -16,6 +16,6 @@ for file in  $* ;do
     basename="${base%.*}"
     cp $file /tmp/$base
     ${processing_inmt_script} /tmp/$base
-    n=`wc -l /tmp/$basename.scores|awk '{print $1}'`
-    ${ic_script} -t /tmp/$basename.scores -n $n
+    #n=`wc -l /tmp/$basename.scores|awk '{print $1}'`
+    ${ic_script} -t /tmp/$basename.scores -n 10000
 done
