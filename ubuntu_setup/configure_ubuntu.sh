@@ -4,7 +4,7 @@ sudo apt-get upgrade
 
 # Insall basic packages
 sudo apt-get install git emacs compizconfig-settings-manager compiz-plugins-extra ubuntu-desktop gnome-session-flashback 
-sudo apt-get install network-manager-vpnc network-manager-vpnc-gnome
+sudo apt-get install network-manager-vpnc network-manager-vpnc-gnome texstudio ipe
 
 # Install spotify 
 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0DF731E45CE24F27EEEB1450EFDC8610341D9410
