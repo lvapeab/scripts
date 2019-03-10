@@ -34,21 +34,22 @@ n_systems = len(args.data)
 color = iter(cm.rainbow(np.linspace(0, 1, n_systems)))
 fig, ax = plt.subplots()
 
-for n_system, data_filename in enumerate(args.data):
+for n_system, data_filename in list(enumerate(args.data)):
+
     c = next(color)
     system_name = data_filename
     coords = open(data_filename, 'r').read().split('\n')
     coords = coords[:-1] if coords[-1] == '' else coords
-    x = np.asarray(map(lambda x_: x_.split()[0], coords), np.float32)
-    y = np.asarray(map(lambda y_: y_.split()[1], coords), np.float32)
+    x = np.asarray(list(map(lambda x_: x_.split()[0], coords)), np.float32)
+    y = np.asarray(list(map(lambda y_: y_.split()[1], coords)), np.float32)
     if len(coords[0].split()) > 2:
-        ci = np.asarray(map(lambda z_: z_.split()[2], coords), np.float32)
+        ci = np.asarray(list(map(lambda z_: z_.split()[2], coords)), np.float32)
     else:
         ci = None
-    print "%s:" % system_name
-    print "\t Arithmetic mean: x = ", np.mean(x), "y = ", np.mean(y)
-    print "\t Var: x = ", np.var(x), "y = ", np.var(y)
-    print "\t Stdev x = ", np.std(x), "y = ", np.std(y)
+    print ("%s:" % system_name)
+    print ("\t Arithmetic mean: x = ", np.mean(x), "y = ", np.mean(y))
+    print ("\t Var: x = ", np.var(x), "y = ", np.var(y))
+    print ("\t Stdev x = ", np.std(x), "y = ", np.std(y))
 
     if ci is not None:
         # plot the shaded range of the confidence intervals
