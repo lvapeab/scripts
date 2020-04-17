@@ -1,7 +1,7 @@
 #!/bin/bash
 
-processing_inmt_script=process_inmt_file.sh
-ic_script=/home/lvapeab/smt/software/confidence_intervals/imt_confidence_intervals.sh
+processing_inmt_script=/home/lvapeab/smt/software/scripts/process_inmt_file.sh
+ic_script=/home/lvapeab/smt/software/confidence_intervals/scripts/imt_confidence_intervals.sh
 
 if [ $# -lt 1 ]
 then
